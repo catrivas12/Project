@@ -1,0 +1,629 @@
+---
+title: "CAT'S PROJECT"
+output: html_document
+date: "2024-09-22"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#Loading packages 
+
+library(ggplot2)
+library(tidyverse)
+library(scales)
+library(psych)
+library(ggthemes) 
+library(dplyr)
+library(tibble)
+library(stargazer)
+library(dplyr)
+```
+
+```{r}
+#loading the data
+load("~/Desktop/RWork/V0500_Lecture1”/BRFSS2022_rev.RData")
+
+
+```
+
+```{r}
+
+brfss22$Educ_number <- fct_recode(brfss22$EDUCA, 
+                                  "0" = "Never attended school or only kindergarten", 
+                                  "4.5" = "Grades 1 through 8 (Elementary)",
+                                  "10" = "Grades 9 through 11 (Some high school)",
+                                  "12" = "Grade 12 or GED (High school graduate)",
+                                  "14" = "College 1 year to 3 years (Some college or technical school)",
+                                  "16" = "College 4 years or more (College graduate)",
+                                  NULL = "Refused" )
+brfss22$Educ_number <- as.numeric(levels(brfss22$Educ_number))[brfss22$Educ_number]
+
+brfss22$Age_midpt <- fct_recode(brfss22$X_AGEG5YR, "21" = "Age 18 to 24",
+                                      "27" = "Age 25 to 29", "32" = "Age 30 to 34",
+                                      "37" = "Age 35 to 39", "42" = "Age 40 to 44",
+                                      "47" = "Age 45 to 49", "52" = "Age 50 to 54",
+                                      "57" = "Age 55 to 59", "62" = "Age 60 to 64",
+                                      "67" = "Age 65 to 69", "72" = "Age 70 to 74",
+                                      "77" = "Age 75 to 79", "82" = "Age 80 or older",
+                                      NULL = "Dont know/Refused/Missing")
+brfss22$Age_midpt <- as.numeric(levels(brfss22$Age_midpt))[brfss22$Age_midpt]
+
+brfss22$income_midpoint <- fct_recode(brfss22$INCOME3, 
+                        "7500" = "Household income less than $10,000",
+                        "12500" = "Less than $15,000 ($10,000 to less than $15,000)",
+                        "17500" = "Less than $20,000 ($15,000 to less than $20,000) ",
+                        "22500" = "Less than $25,000 ($20,000 to less than $25,000) ",
+                        "30000" = "Less than $35,000 ($25,000 to less than $35,000) ",
+                        "42500" = "Less than $50,000 ($35,000 to less than $50,000) ",
+                        "62500" = "Less than $75,000 ($50,000 to less than $75,000)",
+                        "87500" = "Less than $100,000 ($75,000 to less than $100,000)",
+                        "125000" = "Less than $150,000 ($100,000 to less than $150,000)",
+                        "175000" = "Less than $200,000 ($150,000 to less than $200,000)",
+                        "210000" = "$200,000 or more",
+                        NULL = "Dont know/Not sure",
+                        NULL = "Refused")
+brfss22$income_midpoint <- as.numeric(levels(brfss22$income_midpoint))[brfss22$income_midpoint]
+
+#Looking at 10% of the data
+NN <- length(brfss22$INCOME3)
+set.seed(12345)
+restrict_1 <- (runif(NN) < 0.1) #just using 10%
+summary(restrict_1)
+brfss_small <- subset(brfss22, restrict_1)
+summary(brfss_small)
+
+
+```
+
+
+
+```{r}
+#Cleaning the data for MARIJAN AND MENTAL HEALTH
+summary(brfss_small$MARIJAN1)
+summary(brfss_small$MENTHLTH)
+
+#Getting rid of the NA's
+brfss_small <- brfss_small[!is.na(brfss_small$MARIJAN1), ]
+brfss_small <- brfss_small[!is.na(brfss_small$MENTHLTH), ]
+
+#Verifying no NA's
+summary(brfss_small$MARIJAN1)
+summary(brfss_small$MENTHLTH)
+
+any(is.na(brfss_small$MARIJAN1))
+any(is.na(brfss_small$MENTHLTH))
+
+```
+
+
+```{r}
+#Making variables into a factor for graph
+
+brfss_small$MENTHLTH_FACT <- as.factor(brfss_small$MENTHLTH)
+is.factor(brfss_small$MENTHLTH_FACT)
+
+brfss_small$MARIJAN1_FACT <- as.factor(brfss_small$MARIJAN1)
+is.factor(brfss_small$MARIJAN1_FACT)
+
+#checking variables
+summary(brfss_small$MENTHLTH_FACT)
+summary(brfss_small$MARIJAN1_FACT)
+```
+
+
+```{r}
+#recoding for Hispanics
+
+
+
+brfss_small$X_HISPANC_recode <- fct_recode(brfss_small$X_HISPANC,
+                                           "Yes" = "yes Hispanic",
+                                           "No" = "no",
+                                           "Yes" = "dont know refused missing")
+
+#Checking levels
+levels(brfss_small$X_HISPANC_recode)
+
+#Looking at summary
+summary(brfss_small$X_HISPANC_recode)
+
+```
+
+```{r}
+#Recoding for Mental Health 
+summary(brfss_small$MENTHLTH_FACT)
+levels(brfss_small$MENTHLTH_FACT)
+brfss_small$MENTHLTH_FACT <- fct_recode(brfss_small$MENTHLTH_FACT,
+                          "A few bad METHLTH days" = "0",
+                          "A few bad METHLTH days" = "1",
+                          "A few bad METHLTH days" = "2",
+                          "A few bad METHLTH days" = "3",
+                          "A few bad METHLTH days" = "4",
+                          "A few bad METHLTH days" = "5",
+                          "A few bad METHLTH days" = "6",
+                          "A few bad METHLTH days" = "7",
+                          "A few bad METHLTH days" = "8",
+                          "A few bad METHLTH days" = "9",
+                          "A few bad METHLTH days" = "10",
+                          "Some bad METHLTH days" = "11",
+                          "Some bad METHLTH days" = "12",
+                          "Some bad METHLTH days" = "13",
+                          "Some bad METHLTH days" = "14",
+                          "Some bad METHLTH days" = "15",
+                          "Some bad METHLTH days" = "16",
+                          "Some bad METHLTH days" = "17",
+                          "Some bad METHLTH days" = "18",
+                          "Some bad METHLTH days" = "20",
+                          "A lot bad METHLTH days" = "21",
+                          "A lot bad METHLTH days" = "22",
+                          "A lot bad METHLTH days" = "23",
+                          "A lot bad METHLTH days" = "24",
+                          "A lot bad METHLTH days" = "25",
+                          "A lot bad METHLTH days" = "26",
+                          "A lot bad METHLTH days" = "27",
+                          "A lot bad METHLTH days" = "28",
+                          "A lot bad METHLTH days" = "29",
+                          "A lot bad METHLTH days" = "30")
+
+#checking the levels of mental health 
+levels(brfss_small$MENTHLTH_FACT)
+                      
+```
+
+```{r}
+#Graph
+graph1 <- ggplot(brfss_small, aes(x = MENTHLTH_FACT, fill = X_HISPANC_recode))
+graph1 + geom_bar(position = "fill")+
+  theme_classic() + labs(x = "Bad mental health days", y = "Count")+ scale_y_continuous(labels = scales::comma)
+
+graph1_1 <- ggplot(brfss_small, aes(x = MENTHLTH_FACT, fill = X_HISPANC))
+graph1_1 + geom_bar(position = "fill")+
+  theme_classic() + labs(x = "Bad mental health days", y = "Proportion")+ scale_y_continuous(labels = scales::comma)
+
+```
+
+
+
+
+```{r}
+
+brfss_small$MARIJAN1_FACT_recode <- fct_recode(brfss_small$MARIJAN1_FACT,
+                          "Low use" = "0",
+                          "Low use" = "1",
+                          "Low use" = "2",
+                          "Low use" = "3",
+                          "Low use" = "4",
+                          "Low use" = "5",
+                          "Medium use" = "6",
+                          "Medium use" = "7",
+                          "Medium use" = "8",
+                          "Medium use" = "9",
+                          "Medium use" = "10",
+                          "Medium use" = "12",
+                          "Medium use" = "13",
+                          "Medium use" = "14",
+                          "Medium use" = "15",
+                          "Medium use" = "16",
+                          "Medium use" = "17",
+                          "Medium use" = "18",
+                          "Medium use" = "20",
+                          "Medium use" = "21",
+                          "Medium use" = "22",
+                          "Medium use" = "23",
+                          "Medium use" = "24",
+                          "High use" = "25",
+                          "High use" = "26",
+                          "High use" = "27",
+                          "High use" = "28",
+                          "High use" = "29",
+                          "High use" = "30")
+
+graph2 <- ggplot(brfss_small, aes(x = MENTHLTH_FACT, fill = MARIJAN1_FACT_recode))
+graph2 + geom_bar(position = "fill")+
+  theme_classic() + labs(x = "Bad mental health days", y = "Proportion")+ scale_y_continuous(labels = scales::comma)
+
+graph2_2 <- ggplot(brfss_small, aes(x = MENTHLTH_FACT, fill = MARIJAN1_FACT))
+graph2_2 + geom_bar(position = "fill")+
+  theme_classic() + labs(x = "Bad mental health days", y = "Proportion")+ scale_y_continuous(labels = scales::comma)
+
+
+
+
+
+
+```
+
+
+
+```{r}
+#Removing NA from sleep
+brfss_small <- brfss_small[!is.na(brfss_small$SLEPTIM1), ]
+
+#Verifying 
+any(is.na(brfss_small$SLEPTIM1))
+
+```
+
+```{r}
+#Converting sleep to factor
+brfss_small$SLEPTIME1_FACT <- as.factor(brfss_small$SLEPTIM1)
+```
+
+```{r}
+#Recoding sleep
+brfss_small$SLEPTIME1_recode <- fct_recode(brfss_small$SLEPTIME1_FACT,
+                                           "Few hours of sleep" = "1",
+                                           "Few hours of sleep" = "2",
+                                           "Few hours of sleep" = "3",
+                                           "Few hours of sleep" = "4",
+                                           "Few hours of sleep" = "5",
+                                           "Ideal hours of sleep" = "6",
+                                           "Ideal hours of sleep" = "7",
+                                           "Ideal hours of sleep" = "8",
+                                           "Ideal hours of sleep" = "9",
+                                           "Oversleeping" = "10",
+                                           "Oversleeping" = "11",
+                                           "Oversleeping" = "12",
+                                           "Oversleeping" = "13",
+                                           "Oversleeping" = "14",
+                                           "Oversleeping" = "15",
+                                           "Oversleeping" = "16",
+                                           "Oversleeping" = "18",
+                                           "Oversleeping" = "20",)
+
+
+
+```
+
+```{r}
+#checking levels of sleep
+
+levels(brfss_small$SLEPTIME1_FACT)
+levels(brfss_small$SLEPTIME1_recode)
+
+```
+
+```{r}
+#Graph
+graph3 <- ggplot(brfss_small, aes(x = MENTHLTH_FACT, fill = SLEPTIME1_recode))
+graph3 + geom_bar(position = "fill")+
+  theme_classic() + labs(x = "Bad mental health days in the past 30 days", y = "Count")+ scale_y_continuous(labels = scales::comma)
+
+graph3_3 <- ggplot(brfss_small, aes(x = MENTHLTH_FACT, fill = SLEPTIME1_FACT))
+graph3_3 + geom_bar(position = "fill")+
+  theme_classic() + labs(x = "Bad mental health days in the past 30 days", y = "Count")+ scale_y_continuous(labels = scales::comma)
+
+```
+
+```{r}
+#removing NA for weight 
+brfss_small <- brfss_small[!is.na(brfss_small$WEIGHT2), ]
+
+any(is.na(brfss_small$WEIGHT2))
+```
+
+```{r}
+#creating factor for overweight
+brfss_small$WEIGHT2_fact_overweight <- as.factor(brfss_small$WEIGHT2 >= 200)
+
+```
+
+```{r}
+graph4 <- ggplot(brfss_small, aes(x = MENTHLTH_FACT, fill = WEIGHT2_fact_overweight))
+graph4 + geom_bar(position = "fill")+
+  theme_classic() + labs(x = "Bad mental health days in the past 30 days", y = "Prop")+ scale_y_continuous(labels = scales::comma)
+
+
+```
+
+
+
+
+```{r}
+#Checking if numeric
+is.numeric(brfss_small$MENTHLTH)
+is.numeric(brfss_small$MARIJAN1)
+
+
+```
+
+```{r}
+#NA values
+any(is.na(brfss_small$MENTHLTH))
+any(is.na(brfss_small$MARIJAN1))
+```
+
+```{r}
+#First lm model 
+model1 <- lm(MENTHLTH ~ MARIJAN1, data = brfss_small, na.action = na.omit)
+summary(model1)
+
+graph_model1 <- ggplot(brfss_small, aes(x = MARIJAN1, y = MENTHLTH))+
+  geom_point(color = "pink") + geom_smooth(method = "lm", se = TRUE)+
+  labs(title = "Scatterplot", x = "Marijuana Usage", y = "Bad Mental Health Days")+
+  theme_minimal() + geom_jitter()
+
+graph_model1
+
+graph_model1_1 <- ggplot(brfss_small, aes(x = MARIJAN1, y = MENTHLTH))+
+  geom_point(color = "pink") + geom_smooth(se = TRUE)+
+  labs(title = "Scatterplot", x = "Marijuana Usage", y = "Bad Mental Health Days")+
+  theme_minimal() + geom_jitter()
+
+
+graph_model1_1
+```
+
+```{r}
+#Second lm model
+model2 <- lm(MENTHLTH ~ SLEPTIM1, data = brfss_small,na.action = na.omit)
+summary(model2)
+
+graph_model2 <- ggplot(brfss_small, aes(x = SLEPTIM1, y = MENTHLTH))+
+  geom_point(color = "pink") + geom_smooth(method = "lm", se = TRUE)+
+  labs(title = "Scatterplot", x = "Sleep", y = "Bad Mental Health Days")+
+  theme_minimal() + geom_jitter()
+
+graph_model2
+
+#Dropping anything that is greater than 8 hours of sleep 
+summary(brfss_small$SLEPTIM1)
+# Create a new variable SLEPTIM1_down, keeping only values between 4 and 8
+brfss_small$SLEPTIM1_down <- brfss_small$SLEPTIM1
+brfss_small$SLEPTIM1[brfss_small$SLEPTIM1_down < 4 | brfss_small$SLEPTIM1_down >= 8] <- NA
+
+
+brfss_small <- brfss_small[!is.na(brfss_small$SLEPTIM1), ]
+
+
+
+graph_model2_2 <- ggplot(brfss_small, aes(x = SLEPTIM1_down, y = MENTHLTH))+
+  geom_point(color = "pink") + geom_smooth()+
+  labs(title = "Scatterplot", x = "Sleep", y = "Bad Mental Health Days")+
+  theme_minimal() + geom_jitter()
+
+graph_model2_2
+
+
+```
+
+```{r}
+model3 <- lm(MENTHLTH ~ WEIGHT2, data = brfss_small, na.action = na.omit)
+summary(model3)
+
+graph_model3 <- ggplot(brfss_small, aes(x = WEIGHT2, y = MENTHLTH))+
+  geom_point(color = "pink") + geom_smooth(method = "lm", se = TRUE)+
+  labs(title = "Scatterplot", x = "Weight", y = "Bad Mental Health Days")+
+  theme_minimal() + geom_jitter()
+
+graph_model3
+
+```
+
+```{r}
+model4 <- lm(MENTHLTH ~ (MARIJAN1 + SLEPTIM1) + WEIGHT2, data = brfss_small)
+summary(model4)
+
+
+
+
+
+
+```
+
+
+
+```{r}
+#for tree models
+install.packages("rpart")
+install.packages("rpart.plot")
+library(rpart)
+library(rpart.plot)
+```
+
+
+```{r}
+#Sex variable for tree model
+class(brfss_small$SEXVAR)
+levels(brfss_small$SEXVAR)
+summary(brfss_small$SEXVAR)
+```
+
+```{r}
+#Age variable for tree model
+class(brfss_small$X_AGEG5YR)
+levels(brfss_small$X_AGEG5YR)
+brfss_small <- brfss_small[brfss_small$X_AGEG5YR != "Dont know/Refused/Missing", ]
+brfss_small$X_AGEG5YR <- droplevels(brfss_small$X_AGEG5YR)
+```
+```{r}
+#Marijan variable for tree model
+
+levels(brfss_small$MARIJAN1_FACT)
+is.factor(brfss_small$MARIJAN1_FACT)
+
+brfss_small$MARIJAN1_FACT_recode <- fct_recode(brfss_small$MARIJAN1_FACT,
+                          "Low use" = "0",
+                          "Low use" = "1",
+                          "Low use" = "2",
+                          "Low use" = "3",
+                          "Low use" = "4",
+                          "Low use" = "5",
+                          "Medium use" = "6",
+                          "Medium use" = "7",
+                          "Medium use" = "8",
+                          "Medium use" = "9",
+                          "Medium use" = "10",
+                          "Medium use" = "12",
+                          "Medium use" = "13",
+                          "Medium use" = "14",
+                          "Medium use" = "15",
+                          "Medium use" = "16",
+                          "Medium use" = "17",
+                          "Medium use" = "18",
+                          "Medium use" = "20",
+                          "Medium use" = "21",
+                          "Medium use" = "22",
+                          "Medium use" = "23",
+                          "Medium use" = "24",
+                          "High use" = "25",
+                          "High use" = "26",
+                          "High use" = "27",
+                          "High use" = "28",
+                          "High use" = "29",
+                          "High use" = "30")
+
+levels(brfss_small$MARIJAN1_FACT_recode)
+
+
+
+```
+
+```{r}
+summary(brfss_small$WEIGHT2_fact_overweight)
+is.factor(brfss_small$WEIGHT2_fact_overweight)
+```
+
+
+
+
+
+```{r}
+summary(brfss_small$MENTHLTH)
+summary(brfss_small$MENTHLTH_FACT)
+summary(brfss_small$MENTHLTH_FACT_recode)
+
+tree_model2 <- rpart(MENTHLTH ~  X_AGEG5YR, data = brfss_small)
+summary(tree_model2)
+rpart.plot(tree_model2)
+```
+
+```{r}
+tree_model3 <- rpart(MENTHLTH ~  X_AGEG5YR + MARIJAN1_FACT_recode, data = brfss_small)
+summary(tree_model3)
+rpart.plot(tree_model3)
+```
+
+```{r}
+tree_model4 <- rpart(MENTHLTH ~  X_AGEG5YR + MARIJAN1_FACT_recode + SLEPTIME1_recode, data = brfss_small)
+summary(tree_model4)
+rpart.plot(tree_model4)
+```
+
+```{r}
+
+tree_model5 <- rpart(MENTHLTH ~ ., data = brfss_small)
+summary(tree_model5)
+rpart.plot(tree_model5)
+
+summary(brfss_small$MENTHLTH)
+```
+
+
+
+
+```{r}
+brfss_small$SEXVAR <- as.numeric(brfss_small$SEXVAR)
+
+class(brfss_small$SEXVAR)
+
+require(class)
+require(caret)
+
+standardize_varb_to01 <- function(X_in) {
+  (X_in - min(X_in, na.rm = TRUE))/( max(X_in, na.rm = TRUE) - min(X_in, na.rm = TRUE)  )
+}
+
+
+
+X1 <- standardize_varb_to01(brfss_small$WEIGHT2)
+X2 <- standardize_varb_to01(brfss_small$MARIJAN1)
+X3 <-standardize_varb_to01(brfss_small$SLEPTIM1)
+X4 <-standardize_varb_to01(brfss_small$SEXVAR) 
+# you could add more X variables...
+Y <- brfss_small$MENTHLTH
+
+nonmissingobs <- complete.cases(Y,X1,X2,X3,X4)
+
+X1 <- subset(X1, nonmissingobs)
+X2 <- subset(X2, nonmissingobs)
+X3 <- subset(X3, nonmissingobs)
+X4 <- subset(X4, nonmissingobs)
+
+dat_use <- data.frame(X1,X2,X3,X4)
+Y <- subset(Y, nonmissingobs)
+
+set.seed(1234)
+NN_obs <- length(Y)
+select1 <- (runif(NN_obs) < 0.6)
+train_data <- subset(dat_use,select1)
+test_data <- subset(dat_use,(!select1))
+cl_data <- Y[select1]
+true_data <- Y[!select1]
+
+for (indx in seq(1, 9, by= 2)) {
+ pred_y <- knn3Train(train_data, test_data, cl_data, k = indx, l = 0, prob = FALSE, use.all = TRUE)
+ num_correct_labels <- sum(pred_y == true_data)
+ correct_rate <- num_correct_labels/length(true_data)
+ print(c(indx,correct_rate))
+}
+
+```
+
+
+```{r}
+model2_<- lm(MENTHLTH ~ MARIJAN1 + WEIGHT2 + Age_midpt + X_HISPANC_recode, data = brfss_small, na.action = na.omit)
+summary(model2_)
+
+model3_ <- lm(MENTHLTH ~ MARIJAN1 + WEIGHT2 + I(WEIGHT2^2) + Age_midpt + X_HISPANC_recode, data = brfss_small, na.action = na.omit)
+summary(model3_)
+
+model4_ <- lm(MENTHLTH ~ X_HISPANC_recode + Educ_number + income_midpoint, data = brfss_small, na.action = na.omit)
+summary(brfss_small$Educ_number)
+summary(brfss_small$income_midpoint)
+
+is.numeric(brfss_small$Educ_number)
+summary(brfss_small$Educ_number)
+summary(brfss_small$X_AGEG5YR)
+
+require(stargazer)
+stargazer(model4_, type = "text")
+anova(model2_, model3_)
+
+```
+
+
+
+
+
+```{r}
+levels(brfss_small$X_HISPANC)
+
+to_be_predicted_2 <- data.frame(MARIJAN1 = 25, Age_midpt = 25:55,
+                          WEIGHT2 = 200, X_HISPANC_recode = "Yes", Educ_number = 10, income_midpoint = 30,000)
+
+to_be_predicted_2$yhat <- predict(model2_, newdata = to_be_predicted_2)
+
+anova(model2_, model3_)
+
+
+
+to_be_predicted_2$yhat3 <- predict(model3_, newdata = to_be_predicted_2)
+to_be_predicted_2$yhat4 <- predict(model4_, newdata = to_be_predicted_2)
+
+
+d_for_graphing <- data.frame(Age_midpt = 25:55,
+                             to_be_predicted_2$yhat,
+                             to_be_predicted_2$yhat3,
+                             to_be_predicted_2$yhat4
+                             )
+
+p_predvals <- ggplot(d_for_graphing, aes(Age_midpt))
+p_predvals + geom_line(aes(y = to_be_predicted_2.yhat), color = 'purple') +
+  geom_line(aes(y = to_be_predicted_2.yhat3), color = 'blue') +
+  geom_line(aes(y = to_be_predicted_2.yhat4), color = 'pink')
+```
+
